@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { corDaLuz, fatorBrilho, fatorTimer, kelvinParaRgb } from './luz';
+import { FATOR_MAX, corDaLuz, fatorBrilho, fatorTimer, kelvinParaRgb } from './luz';
 
 describe('kelvinParaRgb', () => {
   it('tons muito quentes não têm azul', () => {
@@ -21,14 +21,11 @@ describe('kelvinParaRgb', () => {
 });
 
 describe('fatorBrilho', () => {
-  it('100% = 1 e cresce sempre', () => {
-    expect(fatorBrilho(100)).toBe(1);
+  it('nunca passa do teto seguro e cresce sempre', () => {
+    expect(fatorBrilho(100)).toBe(FATOR_MAX);
+    expect(fatorBrilho(500)).toBe(FATOR_MAX);
     expect(fatorBrilho(50)).toBeGreaterThan(fatorBrilho(10));
     expect(fatorBrilho(1)).toBeGreaterThan(0);
-  });
-  it('limita valores fora da faixa', () => {
-    expect(fatorBrilho(500)).toBe(1);
-    expect(fatorBrilho(-3)).toBe(fatorBrilho(1));
   });
 });
 
@@ -49,12 +46,16 @@ describe('fatorTimer', () => {
 });
 
 describe('corDaLuz', () => {
-  it('a 1% fica bem fraca e sem azul no tom mais quente', () => {
-    const c = corDaLuz(1500, 1);
-    expect(c[2]).toBe(0);
-    expect(c[0]).toBeLessThan(5);
+  it('no máximo, é um âmbar escuro e sem azul', () => {
+    const [r, g, b] = corDaLuz(100);
+    expect(r).toBeLessThanOrEqual(64);
+    expect(g).toBeLessThan(r);
+    expect(b).toBe(0);
+  });
+  it('em qualquer intensidade não tem azul', () => {
+    for (const i of [1, 30, 70, 100]) expect(corDaLuz(i)[2]).toBe(0);
   });
   it('timer em zero apaga', () => {
-    expect(corDaLuz(1900, 80, 0)).toEqual([0, 0, 0]);
+    expect(corDaLuz(80, 0)).toEqual([0, 0, 0]);
   });
 });

@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { FAIXA_BRILHO, FAIXA_TOM, TIMERS, corDaLuz, fatorTimer, kelvinParaRgb, rgb } from './lib/luz';
+import { FAIXA_BRILHO, TIMERS, TOM_FIXO, corDaLuz, fatorTimer, kelvinParaRgb, rgb } from './lib/luz';
 import { lerPreferencias, salvarPreferencias, type Preferencias } from './lib/preferencias';
 import { manterTelaAcesa } from './lib/tela-acesa';
-
-const PRESETS = [
-  { nome: 'Profundo', tom: 1500 },
-  { nome: 'Âmbar', tom: 1900 },
-  { nome: 'Quente', tom: 2300 },
-  { nome: 'Suave', tom: 2700 },
-];
 
 export function App() {
   const [p, setP] = useState<Preferencias>(lerPreferencias);
@@ -28,11 +21,11 @@ export function App() {
   const totalMs = p.timer * 60000;
   const restante = p.timer ? inicio + totalMs - agora : 1;
   const apagada = p.timer > 0 && restante <= 0;
-  const cor = corDaLuz(p.tom, p.brilho, p.timer ? fatorTimer(restante, totalMs) : 1);
+  const cor = corDaLuz(p.brilho, p.timer ? fatorTimer(restante, totalMs) : 1);
   const css = rgb(cor);
 
   // Os controles usam o mesmo tom, num âmbar fixo e legível (não seguem a intensidade da luz)
-  const [kr, kg, kb] = kelvinParaRgb(p.tom);
+  const [kr, kg, kb] = kelvinParaRgb(TOM_FIXO);
   const ui = `rgb(${Math.round(kr * 0.5)} ${Math.round(kg * 0.5)} ${Math.round(kb * 0.5)})`;
 
   useEffect(() => {
@@ -68,20 +61,7 @@ export function App() {
           <input id="brilho" type="range" min={FAIXA_BRILHO.min} max={FAIXA_BRILHO.max} step={1} value={p.brilho} onChange={(e) => mudar({ brilho: +e.target.value })} />
         </div>
 
-        <div className="linha">
-          <div className="rotulo">
-            <label htmlFor="tom">Tom da luz</label>
-            <span className="num">{p.tom} K</span>
-          </div>
-          <input id="tom" type="range" min={FAIXA_TOM.min} max={FAIXA_TOM.max} step={FAIXA_TOM.passo} value={p.tom} onChange={(e) => mudar({ tom: +e.target.value })} />
-          <div className="fichas">
-            {PRESETS.map((x) => (
-              <button key={x.tom} aria-pressed={p.tom === x.tom} onClick={() => mudar({ tom: x.tom })}>
-                {x.nome}
-              </button>
-            ))}
-          </div>
-        </div>
+        <p className="aviso">Luz fixa em âmbar, sem azul, e com claridade limitada para não atrapalhar o sono. Deixe o brilho do iPhone no mínimo.</p>
 
         <div className="linha">
           <div className="rotulo">
