@@ -1,10 +1,14 @@
 // Contas da luz: tom (Kelvin) -> cor, intensidade -> brilho e timer de apagar.
 
-/** Tom fixo: 1800 K não tem nenhum azul (o Kindle Paperwhite vai até ~2700 K no mais quente). Não é ajustável. */
-export const TOM_FIXO = 1800;
-/** Teto de claridade: a cor mais forte possível é um âmbar escuro (código 64 de 255), bem abaixo da tela cheia. */
+/** 24 níveis de intensidade, como o controle de brilho do Kindle (níveis relativos, sem valor absoluto). */
+export const NIVEIS = 24;
+/** 9 tons, todos sem nenhum azul (de 1500 K a 1900 K). O tom mais frio permitido é o 1900 K. */
+export const TONS = [1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900] as const;
+export const NIVEL_TOM_PADRAO = 7; // 1800 K
+export const NIVEL_PADRAO = 10;
+/** Piso e teto de claridade (fração do máximo da tela). No teto, a cor é um âmbar escuro (código 64 de 255). O piso evita o tom virar vermelho por arredondamento. */
+export const FATOR_MIN = 10 / 255;
 export const FATOR_MAX = 0.25;
-export const FAIXA_BRILHO = { min: 1, max: 100 };
 export const TIMERS = [0, 15, 30, 60] as const;
 export type Timer = (typeof TIMERS)[number];
 
@@ -12,7 +16,7 @@ export function limitar(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
-/** Kelvin -> RGB (aproximação de Tanner Helland, faixa quente). Abaixo de ~1900 K o azul é zero. */
+/** Kelvin -> RGB (aproximação de Tanner Helland, faixa quente). Até 1900 K o azul é zero. */
 export function kelvinParaRgb(k: number): [number, number, number] {
   const t = limitar(k, 1000, 6600) / 100;
   const g = limitar(99.4708 * Math.log(t) - 161.1196, 0, 255);
@@ -20,9 +24,15 @@ export function kelvinParaRgb(k: number): [number, number, number] {
   return [255, Math.round(g), Math.round(b)];
 }
 
-/** Intensidade (1 a 100) -> fator de brilho, sempre dentro do teto seguro. */
-export function fatorBrilho(intensidade: number): number {
-  return FATOR_MAX * Math.pow(limitar(intensidade, FAIXA_BRILHO.min, FAIXA_BRILHO.max) / 100, 1.5);
+/** Nível (1 a 24) -> fator de brilho, entre o piso e o teto seguros. Passos iguais no código de cor, que já é aproximadamente perceptual (curvas mais fortes juntam os níveis baixos na mesma cor, por causa dos 8 bits). */
+export function fatorBrilho(nivel: number): number {
+  const n = limitar(Math.round(nivel), 1, NIVEIS);
+  return FATOR_MIN + (FATOR_MAX - FATOR_MIN) * (n - 1) / (NIVEIS - 1);
+}
+
+/** Nível de tom (1 a 9) -> Kelvin. */
+export function kelvinDoNivel(nivel: number): number {
+  return TONS[limitar(Math.round(nivel), 1, TONS.length) - 1];
 }
 
 /** Quanto da luz sobra com o timer: 1 até 60% do tempo, depois cai até 0 no fim. */
@@ -33,9 +43,9 @@ export function fatorTimer(restanteMs: number, totalMs: number): number {
 }
 
 /** Cor final da tela (com o fator do timer aplicado). */
-export function corDaLuz(intensidade: number, timer = 1, tom = TOM_FIXO): [number, number, number] {
-  const [r, g, b] = kelvinParaRgb(tom);
-  const f = fatorBrilho(intensidade) * limitar(timer, 0, 1);
+export function corDaLuz(nivel: number, nivelTom = NIVEL_TOM_PADRAO, timer = 1): [number, number, number] {
+  const [r, g, b] = kelvinParaRgb(kelvinDoNivel(nivelTom));
+  const f = fatorBrilho(nivel) * limitar(timer, 0, 1);
   return [Math.round(r * f), Math.round(g * f), Math.round(b * f)];
 }
 

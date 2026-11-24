@@ -6,8 +6,8 @@ Mesma base do app-pace-esteira (React + Vite + TypeScript, GitHub Pages). Sem lo
 
 ## O que o app faz
 
-- **Luz fixa e segura para o sono.** Tom fixo em 1800 K (âmbar sem nenhum azul; o Kindle Paperwhite vai até ~2700 K no mais quente, valor não confirmado pela Amazon). Não dá para escolher outra cor.
-- **Intensidade limitada.** O slider vai de 1% a 100%, mas o 100% é só um âmbar escuro (cerca de 25% do máximo da tela). Começa em 30%.
+- **24 níveis de intensidade**, como o controle de brilho do Kindle (níveis relativos, sem valor absoluto). Cada nível dá uma cor diferente e o teto é um âmbar escuro, bem abaixo da tela cheia. Vibração leve a cada passo.
+- **9 tons, todos sem azul** (do âmbar mais vermelho ao mais amarelo). Não existe tom branco nem com azul.
 - **Apagar sozinha** em 15, 30 ou 60 min: a luz fica cheia por 60% do tempo, diminui devagar e apaga. Um toque na tela acende de novo.
 - **Tela sempre acesa** (Screen Wake Lock) enquanto o app está aberto.
 - Um toque na tela mostra ou esconde os controles, que ficam no mesmo tom, bem fracos.
