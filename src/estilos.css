@@ -55,3 +55,5 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 30px;
 
 button:focus-visible, input:focus-visible { outline: 2px solid var(--ui); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.aviso { margin: 0; font-size: 13px; line-height: 1.4; font-weight: 600; }
