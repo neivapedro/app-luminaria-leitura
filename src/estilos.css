@@ -1,0 +1,57 @@
+/* A tela inteira é a luz (--luz). O painel de controles usa o mesmo tom, bem fraco (--ui). */
+:root {
+  --luz: rgb(255 138 18);
+  --ui: rgb(120 62 8);
+  --fundo: #0a0603;
+  --fonte: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0; height: 100%; background: var(--fundo); color: var(--ui);
+  font-family: var(--fonte); overflow: hidden; overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+body { position: fixed; inset: 0; }
+#root, .app { height: 100%; }
+
+.num { font-variant-numeric: tabular-nums; }
+
+.luz { position: fixed; inset: 0; background: var(--luz); transition: background-color .2s linear; }
+
+.dica {
+  position: fixed; left: 0; right: 0; margin: 0; text-align: center; font-size: 14px; pointer-events: none;
+  top: calc(env(safe-area-inset-top) + 16px); padding: 0 24px; color: var(--ui);
+}
+
+.painel {
+  position: fixed; left: 12px; right: 12px; max-width: 496px; margin: 0 auto;
+  bottom: max(12px, calc(env(safe-area-inset-bottom) - 4px));
+  display: grid; gap: 20px; padding: 20px; border-radius: 28px;
+  background: rgb(8 4 1 / 0.82); border: 1px solid color-mix(in srgb, var(--ui) 45%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  transition: opacity .35s, transform .35s cubic-bezier(.2,.9,.3,1);
+}
+.painel.fechado { opacity: 0; transform: translateY(16px); pointer-events: none; }
+
+.linha { display: grid; gap: 8px; }
+.rotulo { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; }
+
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 36px; background: transparent; margin: 0; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--ui) 40%, transparent); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; margin-top: -13px; border-radius: 50%; background: var(--ui); border: 0; }
+
+.fichas { display: flex; gap: 8px; }
+.fichas button {
+  flex: 1 1 0; min-width: 0; min-height: 44px; border-radius: 14px; font: inherit; font-size: 14px; font-weight: 600;
+  border: 1px solid color-mix(in srgb, var(--ui) 45%, transparent); background: transparent; color: var(--ui); cursor: pointer;
+}
+.fichas button[aria-pressed=true] { background: var(--ui); color: var(--fundo); border-color: var(--ui); }
+
+.chave { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 14px; font-weight: 600; }
+.chave input { width: 22px; height: 22px; accent-color: var(--ui); }
+
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ui); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
