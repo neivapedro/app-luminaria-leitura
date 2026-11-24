@@ -108,3 +108,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ui); outlin
 input[type=range]:focus-visible { border-radius: var(--r-md); }
 .chave input:focus-visible { border-radius: var(--r-pill); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.valor small { font-size: var(--t-rotulo); font-weight: var(--peso-regular); letter-spacing: 0; margin-left: 4px; }
+.extremos { display: flex; justify-content: space-between; font-size: 12px; font-weight: var(--peso-regular); margin-top: -4px; }
