@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FAIXA_BRILHO, FAIXA_TOM, TIMERS, corDaLuz, fatorTimer, rgb } from './lib/luz';
+import { FAIXA_BRILHO, FAIXA_TOM, TIMERS, corDaLuz, fatorTimer, kelvinParaRgb, rgb } from './lib/luz';
 import { lerPreferencias, salvarPreferencias, type Preferencias } from './lib/preferencias';
 import { manterTelaAcesa } from './lib/tela-acesa';
 
@@ -31,8 +31,9 @@ export function App() {
   const cor = corDaLuz(p.tom, p.brilho, p.timer ? fatorTimer(restante, totalMs) : 1);
   const css = rgb(cor);
 
-  // Os controles ficam no mesmo tom, fracos, para não ofuscar no escuro
-  const ui = rgb(corDaLuz(p.tom, Math.max(18, Math.min(p.brilho, 40)), 1).map((c) => Math.round(c * 0.8)) as [number, number, number]);
+  // Os controles usam o mesmo tom, num âmbar fixo e legível (não seguem a intensidade da luz)
+  const [kr, kg, kb] = kelvinParaRgb(p.tom);
+  const ui = `rgb(${Math.round(kr * 0.5)} ${Math.round(kg * 0.5)} ${Math.round(kb * 0.5)})`;
 
   useEffect(() => {
     document.documentElement.style.setProperty('--luz', css);

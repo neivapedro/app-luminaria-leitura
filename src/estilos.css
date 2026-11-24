@@ -10,16 +10,16 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
-  margin: 0; height: 100%; background: var(--fundo); color: var(--ui);
+  margin: 0; height: 100%; background: var(--luz); color: var(--ui);
   font-family: var(--fonte); overflow: hidden; overscroll-behavior: none;
   -webkit-text-size-adjust: 100%; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
-body { position: fixed; inset: 0; }
+body { position: fixed; inset: 0; min-height: 100lvh; }
 #root, .app { height: 100%; }
 
 .num { font-variant-numeric: tabular-nums; }
 
-.luz { position: fixed; inset: 0; background: var(--luz); transition: background-color .2s linear; }
+.luz { position: fixed; left: 0; right: 0; top: 0; height: 100lvh; min-height: 100%; background: var(--luz); transition: background-color .2s linear; }
 
 .dica {
   position: fixed; left: 0; right: 0; margin: 0; text-align: center; font-size: 14px; pointer-events: none;
@@ -30,7 +30,7 @@ body { position: fixed; inset: 0; }
   position: fixed; left: 12px; right: 12px; max-width: 496px; margin: 0 auto;
   bottom: max(12px, calc(env(safe-area-inset-bottom) - 4px));
   display: grid; gap: 20px; padding: 20px; border-radius: 28px;
-  background: rgb(8 4 1 / 0.82); border: 1px solid color-mix(in srgb, var(--ui) 45%, transparent);
+  background: rgb(8 4 1 / 0.88); border: 1px solid color-mix(in srgb, var(--ui) 45%, transparent);
   -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
   transition: opacity .35s, transform .35s cubic-bezier(.2,.9,.3,1);
 }
