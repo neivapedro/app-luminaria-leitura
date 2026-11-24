@@ -1,0 +1,165 @@
+<title>Luminária de Leitura</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: tela inteira é a luz; painel de controles discreto na base, some com um toque. */
+:root {
+  --ink: #0a0603;
+  --glow-r: 255; --glow-g: 138; --glow-b: 18;
+  --ui-fg: rgb(120, 62, 8);
+  --ui-line: rgba(120, 62, 8, .45);
+  --ui-bg: rgba(8, 4, 1, .72);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--ink); color: var(--ui-fg); font-family: var(--font);
+  overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+#stage { position: fixed; inset: 0; background: rgb(var(--glow-r), var(--glow-g), var(--glow-b)); transition: background .15s linear; }
+#panel {
+  position: fixed; left: 0; right: 0; bottom: 0; box-sizing: border-box;
+  padding-block: 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+  background: var(--ui-bg); border-top: 1px solid var(--ui-line);
+  display: grid; gap: 18px; transition: opacity .4s, transform .4s;
+}
+#panel.off { opacity: 0; transform: translateY(12px); pointer-events: none; }
+.row { display: grid; gap: 8px; }
+.lbl { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 34px; background: transparent; margin: 0; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--ui-line); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -12px; border-radius: 50%; background: var(--ui-fg); border: 0; }
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--ui-line); }
+input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--ui-fg); border: 0; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips button {
+  flex: 1 1 0; min-width: 56px; min-height: 44px; border-radius: 10px; border: 1px solid var(--ui-line);
+  background: transparent; color: var(--ui-fg); font: inherit; font-size: 14px;
+}
+.chips button[aria-pressed=true] { background: var(--ui-fg); color: var(--ink); border-color: var(--ui-fg); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ui-fg); outline-offset: 2px; }
+#hint { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 0; right: 0; text-align: center; font-size: 13px; color: var(--ui-fg); transition: opacity 1s; pointer-events: none; }
+#status { font-size: 12px; text-align: center; min-height: 1em; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="stage"></div>
+<div id="hint">Toque na tela para mostrar ou esconder os controles</div>
+
+<div id="panel">
+  <div class="row">
+    <div class="lbl"><label for="bri">Intensidade</label><span id="briv"></span></div>
+    <input id="bri" type="range" min="1" max="100" step="1">
+  </div>
+  <div class="row">
+    <div class="lbl"><label for="tone">Tom da luz</label><span id="tonev"></span></div>
+    <input id="tone" type="range" min="1500" max="2700" step="50">
+  </div>
+  <div class="row">
+    <div class="lbl"><span>Apagar sozinho</span></div>
+    <div class="chips" id="timers">
+      <button data-min="0" aria-pressed="true">Nunca</button>
+      <button data-min="15" aria-pressed="false">15 min</button>
+      <button data-min="30" aria-pressed="false">30 min</button>
+      <button data-min="60" aria-pressed="false">60 min</button>
+    </div>
+  </div>
+  <div id="status"></div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var KEY = 'luminaria-leitura-v1';
+  var s = { bri: 12, tone: 1900, timer: 0 };
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || '{}'); for (var k in saved) if (k in s) s[k] = saved[k]; } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} }
+
+  // Kelvin -> RGB (aproximação de Tanner Helland, só a faixa quente). Abaixo de ~1900K o azul é zero.
+  function kelvin(k) {
+    var t = k / 100;
+    var g = Math.max(0, Math.min(255, 99.4708 * Math.log(t) - 161.1196));
+    var b = t <= 19 ? 0 : Math.max(0, Math.min(255, 138.5177 * Math.log(t - 10) - 305.0448));
+    return [255, g, b];
+  }
+
+  var deadline = 0, startedAt = 0, faded = false;
+
+  function paint() {
+    var factor = 1;
+    if (s.timer && deadline) {
+      var left = deadline - Date.now(), total = deadline - startedAt;
+      // Nos últimos 40% do tempo, a luz diminui até apagar.
+      var fadeSpan = total * 0.4;
+      factor = left <= 0 ? 0 : Math.min(1, left / fadeSpan);
+      faded = left <= 0;
+    } else faded = false;
+    var level = Math.pow(s.bri / 100, 2.2) * factor;
+    if (faded) level = 0;
+    var c = kelvin(s.tone), r = c[0] * level, g = c[1] * level, b = c[2] * level;
+    var root = document.documentElement.style;
+    root.setProperty('--glow-r', r.toFixed(1));
+    root.setProperty('--glow-g', g.toFixed(1));
+    root.setProperty('--glow-b', b.toFixed(1));
+    // Os controles também ficam âmbar e fracos, para não ofuscar no escuro.
+    var u = Math.max(0.35, Math.min(1, s.bri / 40)) * 0.55;
+    root.setProperty('--ui-fg', 'rgb(' + Math.round(c[0] * u) + ',' + Math.round(c[1] * u) + ',' + Math.round(c[2] * u) + ')');
+    root.setProperty('--ui-line', 'rgba(' + Math.round(c[0] * u) + ',' + Math.round(c[1] * u) + ',' + Math.round(c[2] * u) + ',.45)');
+    $('briv').textContent = s.bri + '%';
+    $('tonev').textContent = s.tone + ' K';
+    var st = $('status');
+    if (s.timer && deadline && !faded) {
+      var m = Math.ceil((deadline - Date.now()) / 60000);
+      st.textContent = 'Apaga em ' + m + ' min';
+    } else if (faded) st.textContent = 'Luz apagada. Toque na tela para acender.';
+    else st.textContent = '';
+  }
+
+  function armTimer() {
+    if (s.timer) { startedAt = Date.now(); deadline = startedAt + s.timer * 60000; }
+    else deadline = 0;
+    paint();
+  }
+
+  $('bri').value = s.bri; $('tone').value = s.tone;
+  $('bri').addEventListener('input', function () { s.bri = +this.value; save(); paint(); });
+  $('tone').addEventListener('input', function () { s.tone = +this.value; save(); paint(); });
+
+  var btns = $('timers').querySelectorAll('button');
+  function markTimer() { btns.forEach(function (b) { b.setAttribute('aria-pressed', String(+b.dataset.min === s.timer)); }); }
+  btns.forEach(function (b) {
+    b.addEventListener('click', function (e) { e.stopPropagation(); s.timer = +b.dataset.min; markTimer(); save(); armTimer(); });
+  });
+  markTimer();
+
+  // Toque na tela: mostra/esconde controles. Se a luz apagou pelo timer, acende de novo.
+  var panel = $('panel'), hint = $('hint');
+  panel.classList.add('off');
+  function dismissHint() { hint.style.opacity = 0; }
+  setTimeout(dismissHint, 5000);
+  $('stage').addEventListener('click', function () {
+    dismissHint();
+    if (faded) { armTimer(); return; }
+    panel.classList.toggle('off');
+  });
+  panel.addEventListener('click', function (e) { e.stopPropagation(); });
+
+  // Mantém a tela ligada enquanto o app está aberto.
+  var lock = null;
+  function wake() {
+    try {
+      if (navigator.wakeLock && document.visibilityState === 'visible') {
+        navigator.wakeLock.request('screen').then(function (l) { lock = l; l.addEventListener('release', function () { lock = null; }); }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', wake);
+  document.addEventListener('pointerdown', function () { if (!lock) wake(); });
+  wake();
+
+  setInterval(paint, 1000);
+  armTimer();
+})();
+</script>
