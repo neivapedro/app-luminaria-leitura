@@ -26,13 +26,16 @@ export function App() {
 
   // Os controles usam o mesmo tom, num âmbar fixo e legível (não seguem a intensidade da luz)
   const [kr, kg, kb] = kelvinParaRgb(TOM_FIXO);
-  const ui = `rgb(${Math.round(kr * 0.5)} ${Math.round(kg * 0.5)} ${Math.round(kb * 0.5)})`;
+  // 75% do âmbar: contraste de 4,6:1 sobre o painel (mínimo recomendado: 4,5:1)
+  const ui = `rgb(${Math.round(kr * 0.75)} ${Math.round(kg * 0.75)} ${Math.round(kb * 0.75)})`;
+  const trilho = `rgb(${Math.round(kr * 0.25)} ${Math.round(kg * 0.25)} ${Math.round(kb * 0.25)})`;
 
   useEffect(() => {
     document.documentElement.style.setProperty('--luz', css);
     document.documentElement.style.setProperty('--ui', ui);
+    document.documentElement.style.setProperty('--trilho', trilho);
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', css);
-  }, [css, ui]);
+  }, [css, ui, trilho]);
 
   const mudar = (extra: Partial<Preferencias>) => setP((a) => ({ ...a, ...extra }));
   const reacender = () => setInicio(Date.now());
@@ -46,29 +49,51 @@ export function App() {
 
   const minutos = Math.max(0, Math.ceil(restante / 60000));
 
+  const pct = ((p.brilho - FAIXA_BRILHO.min) / (FAIXA_BRILHO.max - FAIXA_BRILHO.min)) * 100;
+
   return (
     <div className="app">
       <div className="luz" onClick={tocarTela} role="button" aria-label="Mostrar ou esconder controles" />
-      {!p.dicaVista && <p className="dica">Toque na tela para mostrar ou esconder os controles</p>}
-      {apagada && <p className="dica">Luz apagada. Toque na tela para acender.</p>}
+      {!p.dicaVista && (
+        <div className="dica">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z" />
+          </svg>
+          <p>Toque para ver os controles</p>
+        </div>
+      )}
+      {apagada && (
+        <div className="dica">
+          <p>Luz apagada. Toque para acender.</p>
+        </div>
+      )}
 
-      <section className={`painel ${painel ? '' : 'fechado'}`} aria-hidden={!painel}>
+      <section className={`painel ${painel ? '' : 'fechado'}`} inert={!painel} aria-label="Controles da luz">
+        <button className="alca" aria-label="Esconder controles" onClick={() => setPainel(false)} />
+
         <div className="linha">
           <div className="rotulo">
             <label htmlFor="brilho">Intensidade</label>
-            <span className="num">{p.brilho}%</span>
+            <span className="valor num">{p.brilho}%</span>
           </div>
-          <input id="brilho" type="range" min={FAIXA_BRILHO.min} max={FAIXA_BRILHO.max} step={1} value={p.brilho} onChange={(e) => mudar({ brilho: +e.target.value })} />
+          <input
+            id="brilho"
+            type="range"
+            min={FAIXA_BRILHO.min}
+            max={FAIXA_BRILHO.max}
+            step={1}
+            value={p.brilho}
+            style={{ '--pct': `${pct}%` } as React.CSSProperties}
+            onChange={(e) => mudar({ brilho: +e.target.value })}
+          />
         </div>
-
-        <p className="aviso">Luz fixa em âmbar, sem azul, e com claridade limitada para não atrapalhar o sono. Deixe o brilho do iPhone no mínimo.</p>
 
         <div className="linha">
           <div className="rotulo">
-            <span>Apagar sozinha</span>
-            <span className="num">{p.timer && !apagada ? `em ${minutos} min` : ''}</span>
+            <span id="rotulo-timer">Apagar sozinha</span>
+            <span className="apoio num">{p.timer && !apagada ? `em ${minutos} min` : ''}</span>
           </div>
-          <div className="fichas">
+          <div className="fichas" role="group" aria-labelledby="rotulo-timer">
             {TIMERS.map((m) => (
               <button
                 key={m}
@@ -85,9 +110,11 @@ export function App() {
         </div>
 
         <label className="chave">
-          <input type="checkbox" checked={p.telaAcesa} onChange={(e) => mudar({ telaAcesa: e.target.checked })} />
           <span>Manter a tela acesa</span>
+          <input type="checkbox" role="switch" checked={p.telaAcesa} onChange={(e) => mudar({ telaAcesa: e.target.checked })} />
         </label>
+
+        <p className="aviso">Luz fixa, sem azul. Deixe o brilho do iPhone no mínimo.</p>
       </section>
     </div>
   );
